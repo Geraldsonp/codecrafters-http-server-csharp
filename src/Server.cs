@@ -21,25 +21,21 @@ try
         var client = await server.AcceptTcpClientAsync();
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
-
         var httpRequest = await ReadIncoming(stream);
-
-        if (httpRequest.Path == "/")
+        
+        if (httpRequest.Path.StartsWith("/echo/"))
         {
-            await WriteResponse(stream, "HTTP/1.1 200 OK\r\n\r\n");
+            var responseText = httpRequest.Path.Substring(6);
+            var response = HttpResponse.Ok(responseText);
+            stream.Write(response.SerializeResponse());
         }
         else
         {
-            await WriteResponse(stream, "HTTP/1.1 404 Not Found\r\n\r\n");
+            var response = HttpResponse.NotFound();
+            stream.Write(response.SerializeResponse());
         }
     }
 
-    async Task WriteResponse(NetworkStream stream, string responseText)
-    {
-        var response = Encoding.ASCII.GetBytes(responseText);
-        await stream.WriteAsync(response, 0, response.Length);
-        Console.WriteLine("Sent: {0}", responseText);
-    }
 
     async Task<HttpRequest> ReadIncoming(Stream stream)
     {

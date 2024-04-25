@@ -22,10 +22,15 @@ try
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
+        var body = "";
 
-        var slashIndex = httpRequest.Path.IndexOf("/", 1);
-        var stringToEcho = httpRequest.Path.Substring(slashIndex + 1);
-        var response = HttpResponse.Ok(stringToEcho);
+        if (!string.IsNullOrEmpty(httpRequest.Path))
+        {
+            var slashIndex = httpRequest.Path.IndexOf("/", 1);
+            body = httpRequest.Path.Substring(slashIndex + 1);
+        }
+
+        var response = HttpResponse.Ok(body);
         stream.Write(response.SerializeResponse());
     }
 

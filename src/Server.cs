@@ -23,9 +23,15 @@ try
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
 
-        if (httpRequest.Path.StartsWith("echo/"))
+        if (string.IsNullOrEmpty(httpRequest.Path) || httpRequest.Path.StartsWith("echo/"))
         {
-            var body = httpRequest.Path.Substring(5);
+            var body = "";
+
+            if (!string.IsNullOrEmpty(httpRequest.Path))
+            {
+                body = httpRequest.Path.Substring("echo/".Length);
+            }
+
             var response = HttpResponse.Ok(body);
             stream.Write(response.SerializeResponse());
         }

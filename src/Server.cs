@@ -22,7 +22,13 @@ try
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
-        
+
+        if (httpRequest.Path.StartsWith("/"))
+        {
+            var response = HttpResponse.Ok("");
+            stream.Write(response.SerializeResponse());
+        }
+
         if (httpRequest.Path.StartsWith("/echo/"))
         {
             var responseText = httpRequest.Path.Substring(6);

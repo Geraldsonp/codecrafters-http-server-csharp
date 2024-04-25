@@ -20,7 +20,7 @@ public class HttpRequest
         var lines = request.Split("\r\n");
         var firstLine = lines[0].Split(" ");
         var method = firstLine[0];
-        var path = firstLine[1];
+        var path = firstLine[1].Substring(1);
         var headers = new Dictionary<string, string>();
         var body = "";
         var bodyIndex = Array.IndexOf(lines, "") + 1;

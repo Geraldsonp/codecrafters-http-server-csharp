@@ -23,25 +23,11 @@ try
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
 
-        if (httpRequest.Path.StartsWith("/"))
-        {
-            var response = HttpResponse.Ok("");
-            stream.Write(response.SerializeResponse());
-        }
-
-        if (httpRequest.Path.StartsWith("/echo/"))
-        {
-            var responseText = httpRequest.Path.Substring(6);
-            var response = HttpResponse.Ok(responseText);
-            stream.Write(response.SerializeResponse());
-        }
-        else
-        {
-            var response = HttpResponse.NotFound();
-            stream.Write(response.SerializeResponse());
-        }
+        var slashIndex = httpRequest.Path.IndexOf("/", 1);
+        var stringToEcho = httpRequest.Path.Substring(slashIndex + 1);
+        var response = HttpResponse.Ok(stringToEcho);
+        stream.Write(response.SerializeResponse());
     }
-
 
     async Task<HttpRequest> ReadIncoming(Stream stream)
     {

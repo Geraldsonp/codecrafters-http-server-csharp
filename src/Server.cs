@@ -22,16 +22,18 @@ try
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
-        var body = "";
 
-        if (!string.IsNullOrEmpty(httpRequest.Path))
+        if (httpRequest.Path.StartsWith("echo/"))
         {
-            var slashIndex = httpRequest.Path.IndexOf("/", 1);
-            body = httpRequest.Path.Substring(slashIndex + 1);
+            var body = httpRequest.Path.Substring(5);
+            var response = HttpResponse.Ok(body);
+            stream.Write(response.SerializeResponse());
         }
-
-        var response = HttpResponse.Ok(body);
-        stream.Write(response.SerializeResponse());
+        else
+        {
+            var response = HttpResponse.NotFound();
+            stream.Write(response.SerializeResponse());
+        }
     }
 
     async Task<HttpRequest> ReadIncoming(Stream stream)

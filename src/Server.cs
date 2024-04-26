@@ -27,10 +27,10 @@ try
         {
             var body = "";
 
-            if (!string.IsNullOrEmpty(httpRequest.Path))
-            {
-                body = httpRequest.Path.Substring("echo/".Length);
-            }
+            // if (!string.IsNullOrEmpty(httpRequest.Path))
+            // {
+            //     body = httpRequest.Path.Substring("echo/".Length);
+            // }
 
             if (httpRequest.Headers.ContainsKey("User-Agent"))
             {

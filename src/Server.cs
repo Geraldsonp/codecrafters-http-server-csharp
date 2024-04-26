@@ -22,29 +22,36 @@ try
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
+        HttpResponse? response;
+        string body = "";
 
-        if (string.IsNullOrEmpty(httpRequest.Path) || httpRequest.Path.StartsWith("echo/"))
+        if (httpRequest.Path.StartsWith("echo/"))
         {
-            var body = "";
+            if (!string.IsNullOrEmpty(httpRequest.Path))
+            {
+                body = httpRequest.Path.Substring("echo/".Length);
+            }
 
-            // if (!string.IsNullOrEmpty(httpRequest.Path))
-            // {
-            //     body = httpRequest.Path.Substring("echo/".Length);
-            // }
+            response = HttpResponse.Ok(body);
+            stream.Write(response.SerializeResponse());
+        }
+
+        if (string.IsNullOrEmpty(httpRequest.Path) || httpRequest.Path.StartsWith("user-agent"))
+        {
+            body = "";
 
             if (httpRequest.Headers.ContainsKey("User-Agent"))
             {
                 body += httpRequest.Headers["User-Agent"];
             }
 
-            var response = HttpResponse.Ok(body);
+            response = HttpResponse.Ok(body);
             stream.Write(response.SerializeResponse());
         }
-        else
-        {
-            var response = HttpResponse.NotFound();
-            stream.Write(response.SerializeResponse());
-        }
+
+
+        response = HttpResponse.NotFound();
+        stream.Write(response.SerializeResponse());
     }
 
     async Task<HttpRequest> ReadIncoming(Stream stream)

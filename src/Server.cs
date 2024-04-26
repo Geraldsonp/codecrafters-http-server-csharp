@@ -32,6 +32,11 @@ try
                 body = httpRequest.Path.Substring("echo/".Length);
             }
 
+            if (httpRequest.Headers.ContainsKey("User-Agent"))
+            {
+                body += httpRequest.Headers["User-Agent"];
+            }
+
             var response = HttpResponse.Ok(body);
             stream.Write(response.SerializeResponse());
         }

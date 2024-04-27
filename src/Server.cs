@@ -7,14 +7,14 @@ using codecrafters_http_server;
 
 internal class Program
 {
+    private static string filesDir;
+
     public static async Task Main(string[] args)
     {
         Console.WriteLine("Logs from your program will appear here!");
-
-// Uncomment this block to pass the first stage
+        filesDir = args.Length > 0 ? args[1] : "files";
         const string port = "4221";
         var ipAddress = IPAddress.Any;
-
         try
         {
             var server = new TcpListener(ipAddress, 4221);
@@ -23,6 +23,8 @@ internal class Program
             while (true)
             {
                 Console.WriteLine($"Waiting for connection on {ipAddress.ToString()}:{port}...");
+                Console.WriteLine($"Serving files from {filesDir}");
+
                 var client = await server.AcceptTcpClientAsync();
                 _ = HandleClient(client);
             }
@@ -33,13 +35,33 @@ internal class Program
         }
     }
 
-    public static async Task HandleClient(TcpClient client)
+
+    private static async Task HandleClient(TcpClient client)
     {
         Console.WriteLine("Connected!");
         var stream = client.GetStream();
         var httpRequest = await ReadIncoming(stream);
         HttpResponse? response;
         string body = "";
+
+        if (httpRequest.Path.StartsWith("files/"))
+        {
+            var filePath = httpRequest.Path.Substring("files/".Length);
+            var contentType = "application/octet-stream";
+            var fullPath = Path.Combine(filesDir, filePath);
+            if (File.Exists(fullPath))
+            {
+                body = File.ReadAllText(fullPath);
+                response = HttpResponse.Ok(body);
+                response.Headers["Content-Type"] = contentType;
+                stream.Write(response.SerializeResponse());
+            }
+            else
+            {
+                response = HttpResponse.NotFound();
+                stream.Write(response.SerializeResponse());
+            }
+        }
 
         if (httpRequest.Path.StartsWith("echo/"))
         {

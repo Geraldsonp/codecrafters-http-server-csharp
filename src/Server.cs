@@ -7,12 +7,12 @@ using codecrafters_http_server;
 
 internal class Program
 {
-    private static string filesDir;
+    private static string rootFolder;
 
     public static async Task Main(string[] args)
     {
         Console.WriteLine("Logs from your program will appear here!");
-        filesDir = args.Length > 0 ? args[1] : "files";
+        rootFolder = args.Length > 0 ? args[1] : "files";
         const string port = "4221";
         var ipAddress = IPAddress.Any;
         try
@@ -23,10 +23,10 @@ internal class Program
             while (true)
             {
                 Console.WriteLine($"Waiting for connection on {ipAddress.ToString()}:{port}...");
-                Console.WriteLine($"Serving files from {filesDir}");
+                Console.WriteLine($"Serving files from {rootFolder}");
 
                 var client = await server.AcceptTcpClientAsync();
-                _ = HandleClient(client);
+                _ = HandleConnection(client);
             }
         }
         catch (Exception e)
@@ -35,62 +35,93 @@ internal class Program
         }
     }
 
-
-    private static async Task HandleClient(TcpClient client)
+    private static async Task HandleConnection(TcpClient client)
     {
         Console.WriteLine("Connected!");
-        var stream = client.GetStream();
-        var httpRequest = await ReadIncoming(stream);
+        var connectionStream = client.GetStream();
+        var request = await ReadIncoming(connectionStream);
         HttpResponse? response;
-        string body = "";
 
-        if (httpRequest.Path.StartsWith("files/"))
+        switch (request.Method)
         {
-            var filePath = httpRequest.Path.Substring("files/".Length);
+            case "GET":
+                Console.WriteLine("Handling GET request...");
+                response = await HandleGet(request);
+                break;
+            case "POST":
+                Console.WriteLine("Handling POST request...");
+                response = await HandlePost(request);
+                break;
+            default:
+                Console.WriteLine("Handling unsupported request...");
+                response = HttpResponse.BadRequest();
+                break;
+        }
+        
+        connectionStream.Write(response.SerializeResponse());
+    }
+
+    private static async Task<HttpResponse> HandlePost(HttpRequest request)
+    {
+        var filePath = Path.Combine(rootFolder, request.Path.Substring("files/".Length));
+        await File.WriteAllTextAsync(filePath, request.Body);
+        var response = HttpResponse.Created("File created");
+        response.AddHeader("Content-Type", "text/plain");
+        return response;
+    }
+
+    private static async Task<HttpResponse> HandleGet(HttpRequest request)
+    {
+        var body = "";
+        HttpResponse response;
+        if (request.Path.StartsWith("files/"))
+        {
+            var filePath = request.Path.Substring("files/".Length);
             var contentType = "application/octet-stream";
-            var fullPath = Path.Combine(filesDir, filePath);
+            var fullPath = Path.Combine(rootFolder, filePath);
             if (File.Exists(fullPath))
             {
                 body = File.ReadAllText(fullPath);
                 response = HttpResponse.Ok(body);
                 response.Headers["Content-Type"] = contentType;
-                stream.Write(response.SerializeResponse());
+                return response;
             }
             else
             {
                 response = HttpResponse.NotFound();
-                stream.Write(response.SerializeResponse());
+                return response;
             }
         }
 
-        if (httpRequest.Path.StartsWith("echo/"))
+        if (request.Path.StartsWith("echo/"))
         {
-            if (!string.IsNullOrEmpty(httpRequest.Path))
+            if (!string.IsNullOrEmpty(request.Path))
             {
-                body = httpRequest.Path.Substring("echo/".Length);
+                body = request.Path.Substring("echo/".Length);
             }
 
             response = HttpResponse.Ok(body);
-            stream.Write(response.SerializeResponse());
+            return response;
         }
 
-        if (string.IsNullOrEmpty(httpRequest.Path) || httpRequest.Path.StartsWith("user-agent"))
+        if (string.IsNullOrEmpty(request.Path) || request.Path.StartsWith("user-agent"))
         {
             body = "";
 
-            if (httpRequest.Headers.ContainsKey("User-Agent"))
+            if (request.Headers.ContainsKey("User-Agent"))
             {
-                body += httpRequest.Headers["User-Agent"];
+                body += request.Headers["User-Agent"];
             }
 
             response = HttpResponse.Ok(body);
-            stream.Write(response.SerializeResponse());
+            return response;
         }
 
 
         response = HttpResponse.NotFound();
-        stream.Write(response.SerializeResponse());
+        return response;
     }
+
 
     static async Task<HttpRequest> ReadIncoming(Stream stream)
     {

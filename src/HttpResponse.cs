@@ -15,6 +15,13 @@ public class HttpResponse
         Headers = headers;
     }
 
+    public HttpResponse(string status, string body)
+    {
+        Status = status;
+        Body = body;
+        Headers = new Dictionary<string, string>();
+    }
+
     public byte[] SerializeResponse()
     {
         var contentLength = 0;
@@ -26,7 +33,6 @@ public class HttpResponse
         Headers.Add("Content-Length", contentLength.ToString());
         var headers = string.Join("\r\n", Headers.Select(header => $"{header.Key}: {header.Value}"));
         var responseString = $"HTTP/1.1 {Status}\r\n{headers}\r\n\r\n{Body}";
-        Console.WriteLine(responseString);
         return Encoding.ASCII.GetBytes(responseString);
     }
 
@@ -40,8 +46,18 @@ public class HttpResponse
         return new HttpResponse("404 Not Found", "", new Dictionary<string, string>());
     }
 
-    public void AddHeader(HttpResponse response, string key, string value)
+    public static HttpResponse BadRequest()
     {
-        response.Headers.Add(key, value);
+        return new HttpResponse("400 Bad Request", "", new Dictionary<string, string>());
+    }
+
+    public static HttpResponse Created(string body)
+    {
+        return new HttpResponse("201 Created", body);
+    }
+
+    public void AddHeader(string key, string value)
+    {
+        Headers.Add(key, value);
     }
 }
